@@ -1,0 +1,11 @@
+[package]
+name = "tig"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.104"
+sha1_smol = { version = "1.0.1", features = ["std"] }
+flate2 = "1.1.10"
+hex = "0.4.3"
