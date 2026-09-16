@@ -2,7 +2,10 @@ use std::{env::Args, io::Read, iter::Skip, path::Path};
 
 use anyhow::bail;
 
-use crate::{commands::tig_command::TigCommand, utils::zlib_util::decode};
+use crate::{
+    commands::tig_command::TigCommand,
+    utils::{object_util::is_valid_object_file, zlib_util::decode},
+};
 
 pub struct CatFile {
     directory_name: String,
@@ -45,7 +48,7 @@ impl TigCommand for CatFile {
 
         let raw_content = decode(&blob)?;
 
-        if !raw_content.starts_with(String::from("blob").as_bytes()) {
+        if !is_valid_object_file(&raw_content) {
             bail!("存储库信息错误, 请考虑重新生成存储库");
         }
 
