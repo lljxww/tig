@@ -1,18 +1,8 @@
-use std::{
-    env::Args,
-    iter::Skip,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{env::Args, iter::Skip};
 
 use anyhow::bail;
 
-use crate::{
-    commands::{get_hash, tig_command::TigCommand},
-    utils::{
-        config_util::{get_author, get_email},
-        object_util::{is_object_file_exist, zlib_and_save_to_file},
-    },
-};
+use crate::{commands::tig_command::TigCommand, utils::commit_util::build_commit};
 
 pub struct CommitTree {
     tree_hash: String,
@@ -66,47 +56,7 @@ impl TigCommand for CommitTree {
     }
 
     fn exec(&mut self) -> anyhow::Result<()> {
-        // 验证tree hash
-        if !is_object_file_exist(&self.tree_hash)? {
-            bail!("非法的tree hash")
-        }
-
-        let name = get_author()?;
-        let email = get_email()?;
-
-        let now = SystemTime::now();
-        let timestamp = now.duration_since(UNIX_EPOCH)?.as_secs();
-        let timezone = chrono::Local::now().format("%z");
-
-        let info = format!("{} <{}> {} {}", name, email, timestamp, timezone);
-
-        let mut commit_str = format!("tree {}\n", self.tree_hash,);
-
-        if !self
-            .parent_hash
-            .as_deref()
-            .is_none_or(|h| h.trim().is_empty())
-        {
-            commit_str.push_str(&format!(
-                "parent {}\n",
-                self.parent_hash.as_deref().unwrap()
-            ));
-        }
-
-        commit_str.push_str(&format!(
-            "author {}\ncommitter {}\n\n{}",
-            info, info, self.message
-        ));
-
-        let commit_bytes = commit_str.as_bytes();
-
-        // 构造commit文件头
-        let mut object = format!("commit {}\0", commit_bytes.len()).into_bytes();
-        object.extend_from_slice(commit_bytes);
-
-        let hash = get_hash(&object);
-        zlib_and_save_to_file(&hash, &object)?;
-
+        let hash = build_commit(&self.tree_hash, self.parent_hash.as_deref(), &self.message)?;
         println!("{}", hash);
 
         anyhow::Ok(())

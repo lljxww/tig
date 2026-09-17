@@ -1,15 +1,13 @@
-use std::{env::Args, io::Read, iter::Skip, path::Path};
+use std::{env::Args, iter::Skip, path::Path};
 
 use anyhow::bail;
 
-use crate::commands::get_hash;
 use crate::commands::tig_command::TigCommand;
-use crate::utils::blob_util::get_blob;
-use crate::utils::object_util::zlib_and_save_to_file;
+use crate::models::objects::blob::Blob;
+use crate::models::objects::tig_object::TigObject;
 
 pub struct HashObject {
-    content: Vec<u8>,
-    hash: String,
+    blob: Blob,
 }
 
 impl HashObject {
@@ -22,17 +20,9 @@ impl HashObject {
             bail!("找不到指定的文件: {}", target_file.as_str());
         }
 
-        let mut target_file = std::fs::File::open(target_file)?;
+        let blob = Blob::from_file(&target_file)?;
 
-        let mut file_content: Vec<u8> = Vec::new();
-        target_file.read_to_end(&mut file_content)?;
-
-        let hash = get_hash(&get_blob(&file_content));
-
-        anyhow::Ok(Self {
-            content: file_content,
-            hash,
-        })
+        anyhow::Ok(Self { blob })
     }
 }
 
@@ -47,17 +37,17 @@ impl TigCommand for HashObject {
             bail!("当前文件夹不是有效的tig存储库");
         }
 
-        println!("hash: {}", self.hash);
+        println!("hash: {}", self.blob.hash()?);
 
-        let blob = get_blob(&self.content);
-        zlib_and_save_to_file(&self.hash, &blob)?;
+        self.blob.store()?;
 
         Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        let directory_name = &self.hash.split_at(2).0;
-        let file_name = &self.hash.split_at(2).1;
+        let hash = self.blob.hash()?;
+        let directory_name = hash.split_at(2).0;
+        let file_name = hash.split_at(2).1;
 
         let dir_path = Path::new("./.tig/objects").join(directory_name);
         let file_path = dir_path.join(file_name);

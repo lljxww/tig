@@ -1,4 +1,3 @@
-pub mod blob_util;
 pub mod commit_util;
 pub mod config_util;
 pub mod ignore_util;

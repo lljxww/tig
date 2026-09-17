@@ -1,4 +1,7 @@
-use crate::commands::tig_command::TigCommand;
+use crate::{
+    commands::tig_command::TigCommand, models::objects::commit::Commit,
+    utils::object_util::get_last_commit_hash,
+};
 
 pub struct Log {}
 
@@ -14,7 +17,20 @@ impl TigCommand for Log {
     }
 
     fn exec(&mut self) -> anyhow::Result<()> {
-        println!("log");
+        let hash = get_last_commit_hash()?;
+
+        let Some(hash) = hash else {
+            println!("(no commits yet)");
+            return anyhow::Ok(());
+        };
+
+        let mut commit = Commit::from_hash(&hash)?;
+        println!("{}", commit.get_print_text()?);
+
+        while let Some(parent_hash) = commit.parent_hash() {
+            commit = Commit::from_hash(parent_hash)?;
+            println!("{}", commit.get_print_text()?);
+        }
 
         anyhow::Ok(())
     }
