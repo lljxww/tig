@@ -23,7 +23,7 @@ pub fn get_current_branch_name() -> anyhow::Result<String> {
     Ok(branch_name.to_owned())
 }
 
-pub fn get_branch_file_path() -> anyhow::Result<String> {
+pub fn get_current_branch_file_path() -> anyhow::Result<String> {
     let head = get_head_content()?;
 
     let ref_path = head
@@ -37,13 +37,23 @@ pub fn get_branch_file_path() -> anyhow::Result<String> {
     anyhow::Ok(branch_file)
 }
 
+pub fn get_branch_commit_hash(branch_name: &str) -> anyhow::Result<String> {
+    let branch_file_path = Path::new("./.tig/refs/heads").join(branch_name);
+
+    if !std::fs::exists(&branch_file_path)? {
+        bail!("目标分支不存在");
+    }
+
+    anyhow::Ok(std::fs::read_to_string(&branch_file_path)?)
+}
+
 pub fn save_branch(name: &str, commit_hash: String) -> anyhow::Result<()> {
     std::fs::write(Path::new("./.tig/refs/heads").join(name), commit_hash)?;
     anyhow::Ok(())
 }
 
 pub fn get_last_commit_hash() -> anyhow::Result<Option<String>> {
-    let branch_file = get_branch_file_path()?;
+    let branch_file = get_current_branch_file_path()?;
 
     let parent = std::fs::read_to_string(&branch_file)
         .ok()
@@ -68,7 +78,6 @@ pub fn get_all_branches() -> anyhow::Result<Vec<String>> {
     anyhow::Ok(files)
 }
 
-#[allow(dead_code)]
 pub fn set_head_to_branch(branch_name: &str) -> anyhow::Result<()> {
     let branches = get_all_branches()?;
 

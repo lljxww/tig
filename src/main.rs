@@ -1,8 +1,8 @@
 use std::{env::Args, iter::Skip};
 
 use crate::commands::{
-    branch::Branch, cat_file::CatFile, commit::Commit, commit_tree::CommitTree, config::Config,
-    diff::Diff, hash_object::HashObject, init::Init, log::Log, status::Status,
+    branch::Branch, cat_file::CatFile, checkout::Checkout, commit::Commit, commit_tree::CommitTree,
+    config::Config, diff::Diff, hash_object::HashObject, init::Init, log::Log, status::Status,
     tig_command::TigCommand, write_tree::WriteTree,
 };
 
@@ -58,6 +58,7 @@ fn parse_command(mut args: Skip<Args>) -> anyhow::Result<Box<dyn TigCommand>> {
         "status" => Box::new(Status::new()),
         "diff" => Box::new(Diff::new()),
         "branch" => Box::new(Branch::new(args)),
+        "checkout" => Box::new(Checkout::new(args)?),
         _ => {
             show_help();
             std::process::exit(1);

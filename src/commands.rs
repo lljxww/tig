@@ -1,5 +1,6 @@
 pub mod branch;
 pub mod cat_file;
+pub mod checkout;
 pub mod commit;
 pub mod commit_tree;
 pub mod config;

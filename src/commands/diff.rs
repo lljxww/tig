@@ -4,9 +4,9 @@ use crate::{
     commands::tig_command::TigCommand,
     models::objects::{blob::Blob, commit::Commit, tree::Tree},
     utils::{
+        colored_print_util::{Color, print_colored},
         diff_util::{DiffLine, diff_lines},
         ignore_util::load_ignore,
-        ptl_util::{Color, print_colored},
         repo_util::get_last_commit_hash,
         working_dir_util::scan_working_dir,
     },

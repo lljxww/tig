@@ -5,7 +5,7 @@ use anyhow::bail;
 use crate::{
     commands::tig_command::TigCommand,
     utils::{
-        ptl_util,
+        colored_print_util,
         repo_util::{get_all_branches, get_current_branch_name, get_last_commit_hash, save_branch},
     },
 };
@@ -48,9 +48,9 @@ impl TigCommand for Branch {
 
             for branch in branches {
                 if branch == current_branch {
-                    ptl_util::print_colored(
+                    colored_print_util::print_colored(
                         format!("* {}", branch).as_str(),
-                        ptl_util::Color::Green,
+                        colored_print_util::Color::Green,
                     );
                 } else {
                     println!("  {}", branch);

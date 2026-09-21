@@ -7,7 +7,7 @@ use crate::{
     models::objects::{tig_object::TigObject, tree::Tree},
     utils::{
         ignore_util,
-        repo_util::{get_branch_file_path, get_last_commit_hash},
+        repo_util::{get_current_branch_file_path, get_last_commit_hash},
     },
 };
 
@@ -43,7 +43,7 @@ impl TigCommand for Commit {
         let tree = Tree::new("./", ignore_rules)?;
         tree.store()?;
 
-        let branch_file = get_branch_file_path()?;
+        let branch_file = get_current_branch_file_path()?;
         let parent = get_last_commit_hash()?;
 
         let commit = crate::models::objects::commit::Commit::new(

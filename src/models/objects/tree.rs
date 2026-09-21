@@ -179,6 +179,27 @@ impl Tree {
 
         anyhow::Ok(files)
     }
+
+    pub fn restore_to_dir<P>(hash: &str, dir: P) -> anyhow::Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let tree = Self::from_hash(hash)?;
+        for entry in &tree.entires {
+            let entry_hash = hex::encode(entry.hash);
+            let entry_path = dir.as_ref().join(&entry.name);
+
+            if entry.mode == "040000" {
+                std::fs::create_dir_all(&entry_path)?;
+                Self::restore_to_dir(&entry_hash, &entry_path)?;
+            } else {
+                let blob = Blob::from_hash(&entry_hash)?;
+                std::fs::write(&entry_path, blob.content()?)?;
+            }
+        }
+
+        anyhow::Ok(())
+    }
 }
 
 impl TigObject for Tree {
