@@ -4,7 +4,8 @@ use anyhow::bail;
 
 use crate::{
     commands::tig_command::TigCommand,
-    utils::{ignore_util::load_ignore, tree_util::write_tree},
+    models::objects::{tig_object::TigObject, tree::Tree},
+    utils::ignore_util::load_ignore,
 };
 
 pub struct WriteTree {}
@@ -28,8 +29,10 @@ impl TigCommand for WriteTree {
 
         let ignore_rules = load_ignore();
 
-        let tree = write_tree(Path::new("./"), &ignore_rules)?;
-        println!("{}", tree);
+        let tree = Tree::new("./", &ignore_rules)?;
+        tree.store()?;
+
+        println!("{}", tree.hash()?);
         anyhow::Ok(())
     }
 

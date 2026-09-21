@@ -1,14 +1,13 @@
-use std::{env::Args, iter::Skip, path::Path};
+use std::{env::Args, iter::Skip};
 
 use anyhow::bail;
 
 use crate::{
     commands::tig_command::TigCommand,
+    models::objects::{tig_object::TigObject, tree::Tree},
     utils::{
-        commit_util::build_commit,
         ignore_util,
-        object_util::{get_branch_file_path, get_last_commit_hash},
-        tree_util::write_tree,
+        repo_util::{get_branch_file_path, get_last_commit_hash},
     },
 };
 
@@ -41,12 +40,21 @@ impl TigCommand for Commit {
 
     fn exec(&mut self) -> anyhow::Result<()> {
         let ignore_rules = &ignore_util::load_ignore();
-        let tree_hash = write_tree(Path::new("./"), ignore_rules)?;
+        let tree = Tree::new("./", ignore_rules)?;
+        tree.store()?;
 
         let branch_file = get_branch_file_path()?;
         let parent = get_last_commit_hash()?;
 
-        let commit_hash = build_commit(&tree_hash, parent.as_deref(), &self.message)?;
+        let commit = crate::models::objects::commit::Commit::new(
+            tree.hash()?,
+            parent.as_deref().map(str::to_owned),
+            self.message.to_string(),
+        )?;
+
+        commit.store()?;
+
+        let commit_hash = commit.hash()?;
 
         std::fs::write(&branch_file, &commit_hash)?;
 

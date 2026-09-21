@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::models::objects::{get_content_from_raw, tig_object::TigObject};
+use crate::models::objects::{get_content_from_raw, get_object_path, tig_object::TigObject};
 
 pub struct Blob {
     content: Vec<u8>,
@@ -15,15 +15,20 @@ impl Blob {
     where
         P: AsRef<Path>,
     {
-        let raw = std::fs::read(&path)?;
+        let content = std::fs::read(&path)?;
+        anyhow::Ok(Self::new(content))
+    }
+
+    pub fn from_hash(hash: &str) -> anyhow::Result<Self> {
+        let path = get_object_path(hash);
+        let raw = std::fs::read(path)?;
         let content = get_content_from_raw(&raw)?;
         anyhow::Ok(Self::new(content))
     }
 
-    // pub fn from_hash(hash: &str) -> anyhow::Result<Self> {
-    //     let object_path = object_path(hash);
-    //     anyhow::Ok(Self::from_file(object_path)?)
-    // }
+    pub fn text(&self) -> anyhow::Result<String> {
+        anyhow::Ok(String::from_utf8(self.content.clone())?)
+    }
 }
 
 impl TigObject for Blob {

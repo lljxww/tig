@@ -1,9 +1,12 @@
+pub mod branch;
 pub mod cat_file;
 pub mod commit;
 pub mod commit_tree;
 pub mod config;
+pub mod diff;
 pub mod hash_object;
 pub mod init;
 pub mod log;
+pub mod status;
 pub mod tig_command;
 pub mod write_tree;

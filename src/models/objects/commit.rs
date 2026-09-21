@@ -6,11 +6,8 @@ use std::{
 use anyhow::bail;
 
 use crate::{
-    models::objects::{get_content_from_raw, object_path, tig_object::TigObject},
-    utils::{
-        config_util::{get_author, get_email},
-        object_util::is_object_file_exist,
-    },
+    models::objects::{get_content_from_raw, get_object_path, tig_object::TigObject},
+    utils::config_util::{get_author, get_email},
 };
 
 pub struct Commit {
@@ -26,7 +23,8 @@ impl Commit {
         parent_hash: Option<String>,
         message: String,
     ) -> anyhow::Result<Self> {
-        if !is_object_file_exist(&tree_hash)? {
+        let object_path = get_object_path(&tree_hash);
+        if !std::fs::exists(object_path)? {
             bail!("非法的tree hash")
         }
 
@@ -85,7 +83,7 @@ impl Commit {
     }
 
     pub fn from_hash(hash: &str) -> anyhow::Result<Self> {
-        let object_path = object_path(hash);
+        let object_path = get_object_path(hash);
         anyhow::Ok(Self::from_file(object_path)?)
     }
 
@@ -101,6 +99,10 @@ impl Commit {
             &hash[..7],
             self.message
         ))
+    }
+
+    pub fn tree_hash(&self) -> &str {
+        &self.tree_hash
     }
 }
 

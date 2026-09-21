@@ -1,6 +1,4 @@
-use std::path::Path;
-
-use crate::utils::{object_util::get_directory_name_and_file_name, zlib_util::encode};
+use crate::{models::objects::get_object_path, utils::zlib_util::encode};
 
 pub trait TigObject {
     fn object_type(&self) -> &'static str;
@@ -20,13 +18,9 @@ pub trait TigObject {
 
     fn store(&self) -> anyhow::Result<()> {
         let hash = self.hash()?;
-        let (directory_name, file_name) = get_directory_name_and_file_name(&hash);
-
-        let dir_path = Path::new("./.tig/objects").join(directory_name);
-        std::fs::create_dir_all(&dir_path)?;
-
+        let hash_file_path = get_object_path(&hash);
         let compressed = encode(&self.raw()?)?;
-        std::fs::write(dir_path.join(file_name), compressed)?;
+        std::fs::write(hash_file_path, compressed)?;
 
         anyhow::Ok(())
     }

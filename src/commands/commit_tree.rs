@@ -2,7 +2,10 @@ use std::{env::Args, iter::Skip};
 
 use anyhow::bail;
 
-use crate::{commands::tig_command::TigCommand, utils::commit_util::build_commit};
+use crate::{
+    commands::tig_command::TigCommand,
+    models::objects::{commit::Commit, tig_object::TigObject},
+};
 
 pub struct CommitTree {
     tree_hash: String,
@@ -56,7 +59,15 @@ impl TigCommand for CommitTree {
     }
 
     fn exec(&mut self) -> anyhow::Result<()> {
-        let hash = build_commit(&self.tree_hash, self.parent_hash.as_deref(), &self.message)?;
+        let commit = Commit::new(
+            self.tree_hash.to_string(),
+            self.parent_hash.clone(),
+            self.message.to_string(),
+        )?;
+
+        commit.store()?;
+
+        let hash = commit.hash()?;
         println!("{}", hash);
 
         anyhow::Ok(())

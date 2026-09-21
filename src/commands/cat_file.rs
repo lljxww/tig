@@ -4,7 +4,7 @@ use anyhow::bail;
 
 use crate::{
     commands::tig_command::TigCommand,
-    models::objects::{get_content_from_raw, get_object_raw_by_hash},
+    models::objects::{get_content_from_raw, get_object_path},
 };
 
 pub struct CatFile {
@@ -31,7 +31,8 @@ impl TigCommand for CatFile {
     }
 
     fn exec(&mut self) -> anyhow::Result<()> {
-        let content = get_object_raw_by_hash(&self.hash)?;
+        let object_path = get_object_path(&self.hash);
+        let content = std::fs::read(object_path)?;
         let raw = get_content_from_raw(&content)?;
 
         print!("{}", str::from_utf8(&raw)?);

@@ -1,6 +1,6 @@
 use crate::{
     commands::tig_command::TigCommand, models::objects::commit::Commit,
-    utils::object_util::get_last_commit_hash,
+    utils::repo_util::get_last_commit_hash,
 };
 
 pub struct Log {}
