@@ -16,7 +16,7 @@
 - 检查命令：`cargo check && cargo fmt --check && cargo clippy --all-targets --all-features -- -D warnings`
 - 验证方式：与 `git` 命令交叉对比对象 hash
 
-## 当前项目状态（截至 2026-09-16）
+## 当前项目状态（截至 2026-09-21）
 
 ### 已实现命令
 
@@ -28,34 +28,50 @@
 | `tig write-tree` | `src/commands/write_tree.rs` | ✅ 达标 |
 | `tig commit-tree <tree> -m <msg> [-p <parent>]` | `src/commands/commit_tree.rs` | ✅ 达标 |
 | `tig config get/set <key>` | `src/commands/config.rs` | ✅ 达标 |
-| `tig log` | `src/commands/log.rs` | ⬜ 空壳，未实现 |
+| `tig commit -m <message>` | `src/commands/commit.rs` | ✅ 达标 |
+| `tig log` | `src/commands/log.rs` | ✅ 达标 |
+| `tig status` | `src/commands/status.rs` | ✅ 达标 |
+| `tig diff` | `src/commands/diff.rs` | ✅ 达标 |
+| `tig branch [name]` | `src/commands/branch.rs` | ✅ 达标 |
+| `tig checkout <branch>` | `src/commands/checkout.rs` | ✅ 达标 |
 
 ### 目录结构
 
 ```
 src/
-├── main.rs                    # 命令行入口，parse_command 分发
+├── main.rs                        # 命令行入口，parse_command 分发
+├── commands.rs                    # pub mod 声明
 ├── commands/
-│   ├── mod.rs                 # get_hash() 函数
-│   ├── tig_command.rs         # TigCommand trait（get_name/exec/rollback）
+│   ├── tig_command.rs             # TigCommand trait（get_name/exec/rollback）
 │   ├── init.rs
 │   ├── hash_object.rs
 │   ├── cat_file.rs
 │   ├── write_tree.rs
 │   ├── commit_tree.rs
 │   ├── config.rs
-│   └── log.rs
+│   ├── commit.rs
+│   ├── log.rs
+│   ├── status.rs
+│   ├── diff.rs
+│   ├── branch.rs
+│   └── checkout.rs
+├── models.rs                      # pub mod 声明
 ├── models/
-│   └── path_models.rs         # PathModel/PathModels/Ignore（早期设计，当前仅 ignore_util 沿用部分思路）
+│   └── objects.rs                 # get_object_path / get_content_from_raw / is_valid_object_file
+│   └── objects/
+│       ├── tig_object.rs          # TigObject trait（content/hash/raw/store）
+│       ├── blob.rs                # Blob：from_file（工作区）/ from_hash（对象库）/ text
+│       ├── tree.rs                # Tree：new / from_hash / list_files / restore_to_dir
+│       └── commit.rs             # Commit：new / from_hash / tree_hash / parent_hash / get_print_text
+├── utils.rs                       # pub mod 声明
 └── utils/
-    ├── mod.rs
-    ├── blob_util.rs           # get_blob(content) -> Vec<u8>
-    ├── tree_util.rs           # write_tree(dir, ignore_rules) -> String
-    ├── commit_util.rs         # 空文件，占位
-    ├── object_util.rs         # zlib_and_save_to_file / is_object_file_exist / is_valid_object_file
-    ├── config_util.rs         # 读写 ~/.tigconfig（INI 格式）
-    ├── ignore_util.rs         # load_ignore() / matches_ignore()
-    └── zlib_util.rs           # encode / decode（zlib 压缩/解压）
+    ├── repo_util.rs               # HEAD/ref/分支读写（get_last_commit_hash / get_all_branches / set_head_to_branch）
+    ├── working_dir_util.rs        # scan_working_dir（工作区扫描，不写磁盘）
+    ├── diff_util.rs               # Hirschberg LCS diff 算法（DiffLine / diff_lines）
+    ├── zlib_util.rs               # encode / decode（zlib 压缩/解压）
+    ├── ignore_util.rs             # load_ignore() / matches_ignore()
+    ├── config_util.rs             # 读写 ~/.tigconfig（INI 格式）
+    └── colored_print_util.rs      # 终端颜色输出（检测 is_terminal，重定向时降级）
 ```
 
 ### 依赖
@@ -74,74 +90,48 @@ chrono = "0.4"        # 时区格式化（commit 时间戳）
 
 **TigCommand trait**：所有命令实现 `get_name / exec / rollback`，`exec` 失败时自动调 `rollback`。
 
-**对象存储**：与 git 格式完全兼容。blob/tree/commit 对象都以 zlib 压缩存入 `.tig/objects/<前2位>/<后38位>`。已通过 Python 脚本和 `git cat-file` 交叉验证。
+**TigObject trait**：三种对象（Blob/Tree/Commit）都实现 `TigObject`，trait 提供默认方法：
+- `hash()` → SHA1(`content()`)
+- `raw()` → `"{type} {len}\0{content}"`
+- `store()` → 压缩后写入 `.tig/objects/{前2}/{后38}`
 
-**用户配置**：用 INI 格式存在 `~/.tigconfig`，通过 `tig config set user.name xxx` 设置。commit 时从这里读 author/email。
+**对象路径**：统一通过 `get_object_path(hash)` 获取，不再各处手动拼接。
 
-**忽略规则**：`.tigignore` 支持精确名称（`target`）和后缀通配（`*.log`）。`.tig` 目录硬编码进默认规则。`load_ignore()` 在 `exec()` 层调用一次，通过参数传递给 `write_tree` 递归。
+**对象读取 vs 工作区读取**：
+- `Blob::from_hash(hash)` → 从 `.tig/objects/` 读，内部调 `get_content_from_raw`（解压）
+- `Blob::from_file(path)` → 从工作区读普通文件，**不解压**
+- 两者不能混用，之前曾因混用导致 `corrupt deflate stream` bug
+
+**commit 时序**：`Commit::new()` 调用时确定 author/timestamp，存入结构体字段。`content()` 只做拼接，保证 `store()` 和 `hash()` 的结果一致。
+
+**用户配置**：INI 格式存在 `~/.tigconfig`，`tig config set user.name xxx` 设置。commit 时读取。
+
+**忽略规则**：`.tigignore` 支持精确名称（`target`）和后缀通配（`*.log`）。`.tig` 目录硬编码进默认规则。
+
+**分支机制**：
+- HEAD 文件内容：`ref: refs/heads/main\n`
+- 分支文件：`.tig/refs/heads/<name>`，内容是最新 commit hash
+- `repo_util.rs` 统一提供 HEAD/分支相关读写操作
+
+**diff 算法**：Hirschberg LCS（空间 O(min(N,M))），先剔除公共前后缀再对中间区域做 LCS，输出 `DiffLine::Context / Added / Removed`。
 
 **参数传递**：`parse_command` 接收 `Skip<Args>`，各命令在 `new()` 里自己消费剩余参数。
 
-## 下一轮任务：`tig commit`
-
-实现高层的 `tig commit -m <message>`，把底层操作串联起来。
-
-### 步骤
-
-1. 调用 `write_tree(current_dir, &ignore_rules)` 获得 tree hash
-2. 读取 `.tig/HEAD` → 解析出 ref 路径（如 `refs/heads/main`）
-3. 读取 `.tig/refs/heads/main` → 获取 parent commit hash（第一次为 `None`）
-4. 构建 commit 对象（复用 `commit_tree.rs` 的逻辑，或直接提取成 `commit_util.rs` 中的函数）
-5. 把新 commit hash 写入 `.tig/refs/heads/main`
-
-### 输出格式
-
-```
-[main abc1234] init commit
-```
-hash 取前 7 位。
-
-### 提示代码
-
-```rust
-// 读 HEAD
-let head = std::fs::read_to_string(".tig/HEAD")?;
-let ref_path = head.trim()
-    .strip_prefix("ref: ")
-    .ok_or_else(|| anyhow::anyhow!("HEAD 格式错误"))?;
-
-// 读 parent（第一次不存在）
-let branch_file = format!(".tig/{}", ref_path);
-let parent = std::fs::read_to_string(&branch_file).ok()
-    .map(|s| s.trim().to_string())
-    .filter(|s| !s.is_empty());
-
-// 写新 commit hash
-std::fs::write(&branch_file, format!("{}\n", new_hash))?;
-```
-
-### 验收标准
-
-- `tig commit -m "message"` 正常执行
-- 连续两次 commit，第二次的 commit 对象包含 `parent` 字段
-- `.tig/refs/heads/main` 内容更新为最新 commit hash
-- `tig cat-file <hash>` 可读出完整内容
-- `cargo check / fmt / clippy / test` 全过
-
-## 后续待实现（按优先级）
-
-1. **`tig commit`** — 当前任务
-2. **`tig log`** — 从 HEAD 沿 parent 链遍历并打印 commit 信息
-3. **`tig status`** — 对比工作区和最后一次 commit 的 tree，显示新增/修改/删除
-4. **`tig diff`** — 显示文件级别的差异
-5. **`tig branch`** — 创建和列出分支
-6. **`tig checkout`** — 切换分支，更新工作区文件
-
 ## 已知技术债务
 
-- `models/path_models.rs` 中的 `PathModels` 是早期设计遗留，当前主流程未使用，考虑后续删除或在 `tig add` 时复用
-- `utils/commit_util.rs` 是空文件，commit 构建逻辑目前在 `commit_tree.rs` 的 `exec()` 中，后续实现 `tig commit` 时应提取到这里复用
-- `object_util.rs` 中 `zlib_and_save_to_file` 和 `fs_util.rs` 中的 `save_to_file` 功能重复，后续统一
+- `Tree::new` 构建时会对所有子树和 blob 调 `store()`，即使目的只是计算 hash（如 `status` 扫描时不需要写磁盘）。目前 `scan_working_dir` 用 `Blob::from_file + hash()` 绕开了这个问题，但 Tree 对象还是会写磁盘。后续可以给 TigObject 加 `hash_only()` 路径。
+- `checkout` 切换分支时直接覆盖工作区文件，不检查未提交的本地修改，可能丢失数据。后续应先做 dirty check。
+- 没有 index（暂存区），`tig commit` 直接提交整个工作区，无法做部分提交。
+- `tig log` 的 `get_print_text` 只打印 hash 前 7 位和 message，没有 author 和日期。
+- 单元测试很少，只有 `zlib_util` 有一个 roundtrip 测试。`diff_util`、`ignore_util`、`repo_util` 等纯函数都缺测试。
+
+## 下一步候选任务（按优先级）
+
+1. **补测试**：为 `diff_util`、`ignore_util`、`Tree::list_files`、`Blob` 等加单元测试和集成测试，是目前最值得做的工程质量提升
+2. **`tig log` 完善**：打印 author、日期，支持 `--oneline` 参数
+3. **`tig add` + index**：实现暂存区，让 commit 只提交 staged 文件
+4. **checkout dirty check**：切换前检查工作区是否有未提交修改
+5. **`tig stash`**：暂存工作区变更
 
 ## 教学风格说明（给下一个 AI 会话）
 
@@ -151,3 +141,4 @@ std::fs::write(&branch_file, format!("{}\n", new_hash))?;
 - 用中文回复，代码/命令保留英文
 - 回复直接，不写套话，不空泛表扬
 - 验收时参考 `AGENTS.md` 中的审查结构
+- 用户当前水平：已掌握所有权/借用/生命周期基础、Result/Option 错误处理、Trait 设计、泛型、模块化、文件 IO、迭代器；能独立完成中等复杂度 Rust 任务；下一步可以引入异步、测试框架深度使用、性能分析等话题
