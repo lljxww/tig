@@ -45,7 +45,7 @@ impl CommitTree {
             bail!("提交信息不能为空");
         }
 
-        anyhow::Ok(Self {
+        Ok(Self {
             tree_hash,
             message,
             parent_hash: parent,
@@ -70,10 +70,10 @@ impl TigCommand for CommitTree {
         let hash = commit.hash()?;
         println!("{}", hash);
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

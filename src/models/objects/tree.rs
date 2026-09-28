@@ -25,6 +25,7 @@ pub struct Tree {
 }
 
 impl Tree {
+    /// 创建一个指定文件夹的tree对象
     pub fn new<P>(dir: P, ignore_rules: &[String]) -> anyhow::Result<Self>
     where
         P: AsRef<Path>,
@@ -83,12 +84,13 @@ impl Tree {
             entires_contents.extend_from_slice(&tree_entry.hash);
         }
 
-        anyhow::Ok(Self {
+        Ok(Self {
             content: entires_contents,
             entires,
         })
     }
 
+    /// 通过tree文件, 构造tree对象
     pub fn from_file<P>(path: P) -> anyhow::Result<Self>
     where
         P: AsRef<Path>,
@@ -122,17 +124,21 @@ impl Tree {
             entires.push(TreeEntry::new(mode, name, hash));
         }
 
-        anyhow::Ok(Self { content, entires })
+        Ok(Self { content, entires })
     }
 
+    /// 通过tree hash, 构造tree对象
     pub fn from_hash(hash: &str) -> anyhow::Result<Self> {
         let object_path = get_object_path(hash);
-        anyhow::Ok(Self::from_file(object_path)?)
+        Self::from_file(object_path)
     }
 
+    /// 列出指定tree hash中的所有文件
+    /// - key: 文件路径
+    /// - value: 文件的blob hash
     pub fn list_files(hash: &str) -> anyhow::Result<HashMap<String, String>> {
         let files = Self::parse_content(hash, None)?;
-        anyhow::Ok(files)
+        Ok(files)
     }
 
     fn parse_content(
@@ -177,9 +183,10 @@ impl Tree {
             Ok(())
         })?;
 
-        anyhow::Ok(files)
+        Ok(files)
     }
 
+    /// 将指定tree hash的内容还原到指定目录
     pub fn restore_to_dir<P>(hash: &str, dir: P) -> anyhow::Result<()>
     where
         P: AsRef<Path>,
@@ -198,7 +205,7 @@ impl Tree {
             }
         }
 
-        anyhow::Ok(())
+        Ok(())
     }
 }
 
@@ -208,6 +215,6 @@ impl TigObject for Tree {
     }
 
     fn content(&self) -> anyhow::Result<Vec<u8>> {
-        anyhow::Ok(self.content.clone())
+        Ok(self.content.clone())
     }
 }

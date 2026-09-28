@@ -22,7 +22,7 @@ impl HashObject {
 
         let blob = Blob::from_file(&target_file)?;
 
-        anyhow::Ok(Self { blob })
+        Ok(Self { blob })
     }
 }
 
@@ -59,6 +59,6 @@ impl TigCommand for HashObject {
             }
         }
 
-        anyhow::Ok(())
+        Ok(())
     }
 }

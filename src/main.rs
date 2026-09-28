@@ -36,10 +36,12 @@ fn main() {
     }
 }
 
+/// 显示帮助信息
 fn show_help() {
     println!("tig: a simple Git implementation written in Rust.");
 }
 
+/// 解析命令
 fn parse_command(mut args: Skip<Args>) -> anyhow::Result<Box<dyn TigCommand>> {
     let name = args.next().unwrap_or_else(|| {
         show_help();
@@ -48,7 +50,7 @@ fn parse_command(mut args: Skip<Args>) -> anyhow::Result<Box<dyn TigCommand>> {
 
     let command: Box<dyn TigCommand> = match name.trim().to_lowercase().as_str() {
         "init" => Box::new(Init::new()),
-        "log" => Box::new(Log::new()),
+        "log" => Box::new(Log::new(args)),
         "hash-object" => Box::new(HashObject::new(args)?),
         "cat-file" => Box::new(CatFile::new(args)?),
         "write-tree" => Box::new(WriteTree::new()?),
@@ -65,5 +67,5 @@ fn parse_command(mut args: Skip<Args>) -> anyhow::Result<Box<dyn TigCommand>> {
         }
     };
 
-    anyhow::Ok(command)
+    Ok(command)
 }

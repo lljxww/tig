@@ -458,3 +458,101 @@ fn push_unique_b<'a>(lines: &'a [&'a str], a_is_old: bool, result: &mut Vec<Diff
         result.extend(lines.iter().copied().map(DiffLine::Removed));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::diff_util::{DiffLine, diff_lines};
+
+    #[test]
+    fn same_texts() {
+        let texts = [
+            "line1: How to build a Rust app.",
+            "line2: create a Rust CLI app.",
+            "line3: create a Rust Library app.",
+        ];
+
+        let result = diff_lines(&texts, &texts);
+
+        for line in result {
+            assert!(matches!(line, DiffLine::Context(_)));
+        }
+    }
+
+    #[test]
+    fn one_line_different() {
+        let texts1 = [
+            "line1: How to build a Rust app.",
+            "line2: create a Rust CLI app.",
+            "line3: create a Rust Library app.",
+        ];
+
+        let texts2 = [
+            "line1: How to build a Rust app.",
+            "What's the weather today?",
+            "line3: create a Rust Library app.",
+        ];
+
+        let diff_lines = diff_lines(&texts1, &texts2);
+
+        assert_eq!(4, diff_lines.len());
+
+        assert!(matches!(diff_lines.first(), Some(DiffLine::Context(_))));
+        assert!(matches!(diff_lines.get(1), Some(DiffLine::Removed(_))));
+        assert!(matches!(diff_lines.get(2), Some(DiffLine::Added(_))));
+        assert!(matches!(diff_lines.last(), Some(DiffLine::Context(_))));
+    }
+
+    #[test]
+    fn append_new_line() {
+        let texts1 = [
+            "line1: How to build a Rust app.",
+            "line2: create a Rust CLI app.",
+            "line3: create a Rust Library app.",
+        ];
+
+        let texts2 = [
+            "line1: How to build a Rust app.",
+            "line2: create a Rust CLI app.",
+            "line3: create a Rust Library app.",
+            "What's the weather today?",
+        ];
+
+        let diff_lines = diff_lines(&texts1, &texts2);
+
+        assert_eq!(4, diff_lines.len());
+
+        assert!(matches!(diff_lines.first(), Some(DiffLine::Context(_))));
+        assert!(matches!(diff_lines.get(1), Some(DiffLine::Context(_))));
+        assert!(matches!(diff_lines.get(2), Some(DiffLine::Context(_))));
+        assert!(matches!(diff_lines.last(), Some(DiffLine::Added(_))));
+    }
+
+    #[test]
+    fn remove_line() {
+        let texts1 = [
+            "line1: How to build a Rust app.",
+            "line2: create a Rust CLI app.",
+            "line3: create a Rust Library app.",
+        ];
+
+        let texts2 = [
+            "line1: How to build a Rust app.",
+            "line3: create a Rust Library app.",
+        ];
+
+        let diff_lines = diff_lines(&texts1, &texts2);
+
+        assert_eq!(3, diff_lines.len());
+
+        assert!(matches!(diff_lines.first(), Some(DiffLine::Context(_))));
+        assert!(matches!(diff_lines.get(1), Some(DiffLine::Removed(_))));
+        assert!(matches!(diff_lines.last(), Some(DiffLine::Context(_))));
+    }
+
+    #[test]
+    fn empty_file() {
+        let texts: Vec<&str> = vec![];
+        let diff_lines = diff_lines(&texts, &texts);
+        assert_eq!(0, diff_lines.len());
+    }
+}

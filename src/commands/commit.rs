@@ -23,7 +23,7 @@ impl Commit {
             if let Some(message) = args.next()
                 && !message.trim().is_empty()
             {
-                anyhow::Ok(Self { message })
+                Ok(Self { message })
             } else {
                 bail!("提交信息不能为空")
             }
@@ -69,10 +69,10 @@ impl TigCommand for Commit {
             self.message,
         );
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

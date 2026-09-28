@@ -1,3 +1,4 @@
+/// 加载.tigignore配置
 pub fn load_ignore() -> Vec<String> {
     let mut rules: Vec<String> = std::fs::read_to_string(".tigignore")
         .unwrap_or_default() // 文件不存在时当空字符串处理
@@ -12,6 +13,7 @@ pub fn load_ignore() -> Vec<String> {
     rules
 }
 
+/// 匹配name是否已在rules设置为已忽略
 pub fn matches_ignore(name: &str, rules: &[String]) -> bool {
     rules.iter().any(|rule| {
         if let Some(suffix) = rule.strip_prefix("*.") {

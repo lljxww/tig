@@ -29,7 +29,7 @@ impl TigCommand for Diff {
         // 读上次 commit
         let Some(commit_hash) = get_last_commit_hash()? else {
             println!("(no commits yet)");
-            return anyhow::Ok(());
+            return Ok(());
         };
         let commit = Commit::from_hash(&commit_hash)?;
 
@@ -72,11 +72,11 @@ impl TigCommand for Diff {
             }
         }
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }
 
@@ -97,7 +97,7 @@ fn print_file_diff(
             Ok(t) => t,
             Err(_) => {
                 println!("Binary file: {}", path);
-                return anyhow::Ok(());
+                return Ok(());
             }
         },
         None => String::new(),
@@ -108,7 +108,7 @@ fn print_file_diff(
             Ok(t) => t,
             Err(_) => {
                 println!("Binary file: {}", path);
-                return anyhow::Ok(());
+                return Ok(());
             }
         },
         None => String::new(),
@@ -127,5 +127,7 @@ fn print_file_diff(
         }
     }
 
-    anyhow::Ok(())
+    println!();
+
+    Ok(())
 }

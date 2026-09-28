@@ -2,10 +2,12 @@ use std::path::Path;
 
 use anyhow::bail;
 
+/// 读取HEAD文件原始内容
 fn get_head_content() -> anyhow::Result<String> {
-    anyhow::Ok(std::fs::read_to_string("./.tig/HEAD")?)
+    Ok(std::fs::read_to_string("./.tig/HEAD")?)
 }
 
+/// 获取当前的分支名
 pub fn get_current_branch_name() -> anyhow::Result<String> {
     let head = get_head_content()?;
 
@@ -23,20 +25,15 @@ pub fn get_current_branch_name() -> anyhow::Result<String> {
     Ok(branch_name.to_owned())
 }
 
+/// 获取当前分支的文件路径
 pub fn get_current_branch_file_path() -> anyhow::Result<String> {
-    let head = get_head_content()?;
-
-    let ref_path = head
-        .strip_prefix("ref: ")
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| anyhow::anyhow!("存储库HEAD出现错误"))?;
-
+    let ref_path = get_current_branch_name()?;
     let branch_file = format!(".tig/{}", ref_path);
 
-    anyhow::Ok(branch_file)
+    Ok(branch_file)
 }
 
+/// 获取指定分支名的commit hash (文件原始内容)
 pub fn get_branch_commit_hash(branch_name: &str) -> anyhow::Result<String> {
     let branch_file_path = Path::new("./.tig/refs/heads").join(branch_name);
 
@@ -44,14 +41,16 @@ pub fn get_branch_commit_hash(branch_name: &str) -> anyhow::Result<String> {
         bail!("目标分支不存在");
     }
 
-    anyhow::Ok(std::fs::read_to_string(&branch_file_path)?)
+    Ok(std::fs::read_to_string(&branch_file_path)?)
 }
 
+/// 保存分支信息
 pub fn save_branch(name: &str, commit_hash: String) -> anyhow::Result<()> {
     std::fs::write(Path::new("./.tig/refs/heads").join(name), commit_hash)?;
-    anyhow::Ok(())
+    Ok(())
 }
 
+/// 获取最后一次提交的commit hash
 pub fn get_last_commit_hash() -> anyhow::Result<Option<String>> {
     let branch_file = get_current_branch_file_path()?;
 
@@ -60,9 +59,10 @@ pub fn get_last_commit_hash() -> anyhow::Result<Option<String>> {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
 
-    anyhow::Ok(parent)
+    Ok(parent)
 }
 
+/// 获取已有的分支名列表
 pub fn get_all_branches() -> anyhow::Result<Vec<String>> {
     let branch_files = std::fs::read_dir("./.tig/refs/heads")
         .map_err(|e| anyhow::anyhow!("branch文件读取错误: {}", e))?;
@@ -75,9 +75,10 @@ pub fn get_all_branches() -> anyhow::Result<Vec<String>> {
         })
         .collect::<Result<Vec<String>, std::io::Error>>()?;
 
-    anyhow::Ok(files)
+    Ok(files)
 }
 
+/// 设置当前活跃分支
 pub fn set_head_to_branch(branch_name: &str) -> anyhow::Result<()> {
     let branches = get_all_branches()?;
 
@@ -86,5 +87,5 @@ pub fn set_head_to_branch(branch_name: &str) -> anyhow::Result<()> {
     }
 
     std::fs::write("./.tig/HEAD", format!("ref: refs/heads/{}\n", branch_name))?;
-    anyhow::Ok(())
+    Ok(())
 }

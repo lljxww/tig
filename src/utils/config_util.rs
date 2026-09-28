@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::bail;
 use ini::Ini;
 
+/// 初始化tig的全局配置文件
 pub fn init_config_file() -> anyhow::Result<()> {
     let Some(home) = dirs::home_dir() else {
         bail!("用户目录获取失败!")
@@ -13,17 +14,19 @@ pub fn init_config_file() -> anyhow::Result<()> {
         _ = std::fs::File::create_new(config_file_path);
     }
 
-    anyhow::Ok(())
+    Ok(())
 }
 
+/// 获取tig的配置文件所在目录
 fn get_config_path() -> anyhow::Result<PathBuf> {
     let Some(home) = dirs::home_dir() else {
         bail!("用户目录获取失败!")
     };
 
-    anyhow::Ok(Path::new(&home).join(".tigconfig"))
+    Ok(Path::new(&home).join(".tigconfig"))
 }
 
+/// 设置指定的设置项并存储
 pub fn config_set(key: &str, value: &str) -> anyhow::Result<()> {
     if !key.contains('.') {
         bail!("未知的设置项: {}", key);
@@ -43,9 +46,10 @@ pub fn config_set(key: &str, value: &str) -> anyhow::Result<()> {
     config.with_section(Some(section)).set(name, value);
     config.write_to_file(&config_path)?;
 
-    anyhow::Ok(())
+    Ok(())
 }
 
+/// 读取指定的设置项
 pub fn config_get(key: &str) -> anyhow::Result<String> {
     if !key.contains('.') {
         bail!("未知的设置项: {}", key);
@@ -66,9 +70,10 @@ pub fn config_get(key: &str) -> anyhow::Result<String> {
         .unwrap_or_default()
         .to_owned();
 
-    anyhow::Ok(value)
+    Ok(value)
 }
 
+/// 读取设置中的作者信息
 pub fn get_author() -> anyhow::Result<String> {
     let author = config_get("user.name")?;
 
@@ -76,9 +81,10 @@ pub fn get_author() -> anyhow::Result<String> {
         bail!("请设置tig用户: tig config set user.name REPLACE_WITH_YOUR_NAME");
     }
 
-    anyhow::Ok(author)
+    Ok(author)
 }
 
+/// 读取设置中的作者邮件信息
 pub fn get_email() -> anyhow::Result<String> {
     let author = config_get("user.email")?;
 
@@ -86,5 +92,5 @@ pub fn get_email() -> anyhow::Result<String> {
         bail!("请设置tig用户: tig config set user.email REPLACE_WITH_YOUR_EMAIL");
     }
 
-    anyhow::Ok(author)
+    Ok(author)
 }

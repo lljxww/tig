@@ -12,7 +12,7 @@ pub struct WriteTree {}
 
 impl WriteTree {
     pub fn new() -> anyhow::Result<Self> {
-        anyhow::Ok(Self {})
+        Ok(Self {})
     }
 }
 
@@ -33,10 +33,10 @@ impl TigCommand for WriteTree {
         tree.store()?;
 
         println!("{}", tree.hash()?);
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

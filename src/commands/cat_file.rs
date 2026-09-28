@@ -21,7 +21,7 @@ impl CatFile {
             bail!("给定的hash格式不正确");
         }
 
-        anyhow::Ok(Self { hash })
+        Ok(Self { hash })
     }
 }
 
@@ -41,6 +41,6 @@ impl TigCommand for CatFile {
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

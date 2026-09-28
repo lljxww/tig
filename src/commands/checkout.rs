@@ -15,7 +15,7 @@ pub struct Checkout {
 impl Checkout {
     pub fn new(mut args: Skip<Args>) -> anyhow::Result<Self> {
         if let Some(branch_name) = args.next() {
-            anyhow::Ok(Checkout { branch_name })
+            Ok(Checkout { branch_name })
         } else {
             bail!("请指定要checkout的branch名")
         }
@@ -41,10 +41,10 @@ impl TigCommand for Checkout {
 
         println!("Switched to branch '{}'", self.branch_name);
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

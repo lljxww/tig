@@ -28,7 +28,7 @@ impl TigCommand for Init {
 
         if tig_path.exists() {
             println!("当前目录已经初始化tig仓库");
-            return anyhow::Ok(());
+            return Ok(());
         }
 
         for path in &self.paths {
@@ -39,12 +39,12 @@ impl TigCommand for Init {
 
         println!("已初始化tig仓库");
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
         let tig_path_buf = std::env::current_dir()?.join(".tig");
         std::fs::remove_dir_all(tig_path_buf)?;
-        anyhow::Ok(())
+        Ok(())
     }
 }

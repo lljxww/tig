@@ -23,7 +23,7 @@ impl Config {
             bail!("请输入要操作的配置键");
         };
 
-        anyhow::Ok(Self {
+        Ok(Self {
             mode,
             key,
             value: args.next(),
@@ -58,10 +58,10 @@ impl TigCommand for Config {
             _ => bail!("仅支持get/set"),
         }
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

@@ -7,7 +7,10 @@ use anyhow::bail;
 
 use crate::{
     models::objects::{get_content_from_raw, get_object_path, tig_object::TigObject},
-    utils::config_util::{get_author, get_email},
+    utils::{
+        config_util::{get_author, get_email},
+        timestamp_util,
+    },
 };
 
 pub struct Commit {
@@ -18,6 +21,7 @@ pub struct Commit {
 }
 
 impl Commit {
+    /// 创建一个commit对象
     pub fn new(
         tree_hash: String,
         parent_hash: Option<String>,
@@ -34,7 +38,7 @@ impl Commit {
         let timezone = chrono::Local::now().format("%z");
         let author = format!("{} <{}> {} {}", name, email, timestamp, timezone);
 
-        anyhow::Ok(Self {
+        Ok(Self {
             author,
             tree_hash,
             parent_hash,
@@ -42,6 +46,7 @@ impl Commit {
         })
     }
 
+    /// 从commit文件创建commit对象
     pub fn from_file<P>(path: P) -> anyhow::Result<Self>
     where
         P: AsRef<Path>,
@@ -82,27 +87,59 @@ impl Commit {
         })
     }
 
+    /// 从commit hash创建commit对象
     pub fn from_hash(hash: &str) -> anyhow::Result<Self> {
         let object_path = get_object_path(hash);
-        anyhow::Ok(Self::from_file(object_path)?)
+        Self::from_file(object_path)
     }
 
+    /// 获取当前commit的parent hash信息
     pub fn parent_hash(&self) -> Option<&str> {
         self.parent_hash.as_deref()
     }
 
-    pub fn get_print_text(&self) -> anyhow::Result<String> {
-        let hash = self.hash()?;
-        anyhow::Ok(format!(
-            "{} {}\n\t{}\n",
-            self.object_type(),
-            &hash[..7],
-            self.message
-        ))
-    }
-
+    /// 获取当前commit的tree hash
     pub fn tree_hash(&self) -> &str {
         &self.tree_hash
+    }
+
+    /// 返回当前commit的信息, 适用于log --oneline
+    pub fn get_print_text(&self, is_one_line: bool) -> anyhow::Result<String> {
+        if is_one_line {
+            Self::print_oneline(self)
+        } else {
+            Self::print_full(self)
+        }
+    }
+
+    fn print_full(&self) -> anyhow::Result<String> {
+        let hash = self.hash()?;
+
+        let Some((author_part, timezone)) = self.author.rsplit_once(' ') else {
+            bail!("commit文件不正确");
+        };
+
+        let Some((formated_author, timestamp)) = author_part.rsplit_once(' ') else {
+            bail!("commit文件不正确");
+        };
+
+        let formated_timestamp = timestamp_util::get_log_format(timestamp, timezone)?;
+
+        let result = format!(
+            "{} {}\nAuthor: {}\nDate: {}\n\n\t{}\n",
+            self.object_type(),
+            hash,
+            formated_author,
+            formated_timestamp,
+            self.message
+        );
+
+        Ok(result)
+    }
+
+    fn print_oneline(&self) -> anyhow::Result<String> {
+        let hash = self.hash()?;
+        Ok(format!("{} {}\n", &hash[..7], self.message))
     }
 }
 
@@ -125,6 +162,6 @@ impl TigObject for Commit {
             self.author, self.author, self.message
         ));
 
-        anyhow::Ok(commit_str.as_bytes().to_owned())
+        Ok(commit_str.as_bytes().to_owned())
     }
 }

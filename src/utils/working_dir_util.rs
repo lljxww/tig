@@ -5,7 +5,9 @@ use crate::{
     utils::ignore_util::matches_ignore,
 };
 
-// 扫描当前工作区
+/// 扫描当前工作区, 获取所有的文件信息
+/// - key: path
+/// - value: blob hash
 pub fn scan_working_dir<P>(
     dir: P,
     prefix: &str,
@@ -37,5 +39,5 @@ where
         }
     }
 
-    anyhow::Ok(())
+    Ok(())
 }

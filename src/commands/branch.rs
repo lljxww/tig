@@ -42,7 +42,7 @@ impl TigCommand for Branch {
             save_branch(branch_name, current_commit_hash)?;
 
             println!("已创建分支: {}", branch_name);
-            return anyhow::Ok(());
+            return Ok(());
         } else {
             let current_branch = get_current_branch_name()?;
 
@@ -58,10 +58,10 @@ impl TigCommand for Branch {
             }
         }
 
-        anyhow::Ok(())
+        Ok(())
     }
 
     fn rollback(&mut self) -> anyhow::Result<()> {
-        anyhow::Ok(())
+        Ok(())
     }
 }

@@ -4,6 +4,7 @@ const GREEN_PREFIX: &str = "\x1b[32m";
 const RED_PREFIX: &str = "\x1b[31m";
 const ORIGIN_PREFIX: &str = "\x1b[0m";
 
+/// 输出指定颜色的文本
 pub fn print_colored(s: &str, color: Color) {
     if std::io::stdout().is_terminal() {
         match color {
